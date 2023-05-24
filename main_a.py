@@ -21,12 +21,14 @@ np.random.seed(consts.SEED)
 
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
+
 def parse_arguments():
     parser = argparse.ArgumentParser()
     parser.add_argument('--train', type=int, help='1 for adversarial training, 0 for evaluating')
     return parser.parse_args()
 
-def run_standard_training():
+
+def run_any_training(training_method: callable, model_path: str, *args, **kwargs):
     """
     Run standard training
     """
@@ -35,7 +37,7 @@ def run_standard_training():
     transforms_tr = transforms.Compose([transforms.ToTensor(),
                                         transforms.RandomHorizontalFlip(),
                                         transforms.RandomRotation(8),
-                                        transforms.RandomResizedCrop((32,32))])
+                                        transforms.RandomResizedCrop((32, 32))])
     data_tr = utils.TMLDataset('train', transform=transforms_tr)
 
     # init model
@@ -49,58 +51,34 @@ def run_standard_training():
 
     # execute training
     t0 = time.time()
-    model = utils.standard_train(model, data_tr, criterion, optimizer, \
-                                 scheduler, device)
-    train_time = time.time()-t0
+    model = training_method(model, data_tr, criterion, optimizer, scheduler, device, *args, **kwargs)
+    train_time = time.time() - t0
 
     # move model to cpu and store it
     model.to('cpu')
-    torch.save(model.state_dict(), \
-               'trained-models/simple-cnn')
+    torch.save(model.state_dict(), model_path)
 
     # done
     return train_time
+
+
+def run_standard_training():
+    """
+    Run standard training
+    """
+    return run_any_training(utils.standard_train, 'trained-models/simple-cnn')
 
 
 def run_free_adv_training():
     """
     Run free adversarial training
     """
-
-    # load training set
-    transforms_tr = transforms.Compose([transforms.ToTensor(),
-                                        transforms.RandomHorizontalFlip(),
-                                        transforms.RandomRotation(8),
-                                        transforms.RandomResizedCrop((32,32))])
-    data_tr = utils.TMLDataset('train', transform=transforms_tr)
-
-    # init model
-    model = models.SimpleCNN()
-    model.to(device)
-
-    # loss and optimizer
-    criterion = nn.CrossEntropyLoss()
-    optimizer = optim.SGD(model.parameters(), lr=0.01, momentum=0.9)
-    scheduler = lr_scheduler.StepLR(optimizer, step_size=20, gamma=0.5)
-
-    # execute training
-    t0 = time.time()
-    model = defenses.free_adv_train(model, data_tr, criterion, optimizer, \
-                                    scheduler, consts.PGD_Linf_EPS, device)
-    train_time = time.time()-t0
-
-    # move model to cpu and store it
-    model.to('cpu')
-    torch.save(model.state_dict(), \
-               'trained-models/simple-cnn-free-adv-trained')
-
-    # done
-    return train_time
+    return run_any_training(defenses.free_adv_train,
+                            'trained-models/simple-cnn-free-adv-trained', eps=consts.PGD_Linf_EPS)
 
 
 def run_evaluation():
-
-    # load standard and adversarially trained mdoels
+    # load standard and adversarially trained models
     trained_models = {}
     mpaths = {'standard': 'trained-models/simple-cnn',
               'adv_trained': 'trained-models/simple-cnn-free-adv-trained'}
@@ -136,7 +114,7 @@ def run_evaluation():
         print(f'\t- {mtype:10s}: {sr:0.4f}')
 
 
-if __name__=='__main__':
+if __name__ == '__main__':
     args = parse_arguments()
     if args.train:
         print('Training standard model...')
