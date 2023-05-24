@@ -65,10 +65,15 @@ def standard_train(model, data_tr, criterion, optimizer, lr_scheduler, device,
             optimizer.zero_grad()
 
             # forward + backward + optimize - FILL ME
+            out = model(inputs)
 
-        # update scheduler - FILL ME
+            loss = criterion(out, labels)
+            loss.backward()
 
-    # done
+            optimizer.step()
+
+        lr_scheduler.step()
+
     return model
 
 
