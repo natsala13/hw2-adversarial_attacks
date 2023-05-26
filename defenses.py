@@ -6,7 +6,8 @@ from torch.utils.data import DataLoader
 from scipy.stats import norm
 from statsmodels.stats.proportion import proportion_confint
 
-def free_adv_train(model, data_tr, criterion, optimizer, lr_scheduler, \
+
+def free_adv_train(model, data_tr, criterion, optimizer, lr_scheduler,
                    eps, device, m=4, epochs=100, batch_size=128, dl_nw=10):
     """
     Free adversarial training, per Shafahi et al.'s work.
@@ -15,7 +16,7 @@ def free_adv_train(model, data_tr, criterion, optimizer, lr_scheduler, \
     - data_tr: training dataset
     - criterion: loss function (e.g., nn.CrossEntropyLoss())
     - optimizer: optimizer to be used (e.g., SGD)
-    - lr_scheduer: scheduler for updating the learning rate
+    - lr_scheduler: scheduler for updating the learning rate
     - eps: l_inf epsilon to defend against
     - device: device used for training
     - m: # times a batch is repeated
@@ -32,21 +33,40 @@ def free_adv_train(model, data_tr, criterion, optimizer, lr_scheduler, \
                            shuffle=True,
                            pin_memory=True,
                            num_workers=dl_nw)
-                           
 
     # init delta (adv. perturbation) - FILL ME
-    
+    # delta = torch.zeros((batch_size, 3, 32, 32), requires_grad=True, device=device)
+    # delta = torch.zeros(batch_size, data_tr[0][0].size(1),
+    #                     data_tr[0][0].size(2), data_tr[0][0].size(3)).to(device)
+    delta = torch.zeros_like(data_tr, requires_grad=True, device=device)
 
     # total number of updates - FILL ME
-    
+    epochs_per_minibatch = int(epochs / m)
 
     # when to update lr
-    scheduler_step_iters = int(np.ceil(len(data_tr)/batch_size))
+    scheduler_step_iters = int(np.ceil(len(data_tr) / batch_size))
 
-    # train - FILLE ME
-    
-    
-    # done
+    for epochs in range(epochs_per_minibatch):
+        for i, data in enumerate(loader_tr, 0):
+            inputs, labels = data[0].to(device), data[1].to(device)
+
+            for _ in range(m):
+                optimizer.zero_grad()
+                delta.grad.zero_()
+
+                perturbed_image = inputs + delta
+                out = model(perturbed_image)
+                loss = criterion(out, labels)
+                loss.backward(retain_graph=True)
+
+                delta_grad = delta.grad.sign_()
+                delta.data = torch.clamp(delta + eps * delta_grad, min=-eps, max=eps)
+
+                optimizer.step()
+
+            if i * m % scheduler_step_iters == 0:
+                lr_scheduler.step()
+
     return model
 
 
@@ -72,7 +92,7 @@ class SmoothedModel():
         """
         # FILL ME
         pass
-        
+
     def certify(self, x, n0, n, alpha, batch_size):
         """
         Arguments:
@@ -88,16 +108,14 @@ class SmoothedModel():
         - prediction / top class (ABSTAIN in case of abstaining)
         - certified radius (0. in case of abstaining)
         """
-        
+
         # find prediction (top class c) - FILL ME
-        
-        
+
         # compute lower bound on p_c - FILL ME
-        
 
         # done
         return c, radius
-        
+
 
 class NeuralCleanse:
     """
@@ -134,10 +152,8 @@ class NeuralCleanse:
         - trigger: 
         """
         # randomly initialize mask and trigger in [0,1] - FILL ME
-        
 
         # run self.niters of SGD to find (potential) trigger and mask - FILL ME
-        
 
         # done
         return mask, trigger
