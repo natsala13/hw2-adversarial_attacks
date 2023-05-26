@@ -4,7 +4,7 @@ import torch
 from torch.utils.data import Dataset, DataLoader
 from PIL import Image
 
-import tqdm
+from tqdm import tqdm
 
 
 class TMLDataset(Dataset):

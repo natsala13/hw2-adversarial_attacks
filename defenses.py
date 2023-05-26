@@ -6,6 +6,7 @@ from torch.utils.data import DataLoader
 from scipy.stats import norm
 from statsmodels.stats.proportion import proportion_confint
 
+from tqdm import tqdm
 
 def free_adv_train(model, data_tr, criterion, optimizer, lr_scheduler,
                    eps, device, m=4, epochs=100, batch_size=128, dl_nw=10):
@@ -46,7 +47,7 @@ def free_adv_train(model, data_tr, criterion, optimizer, lr_scheduler,
     # when to update lr
     scheduler_step_iters = int(np.ceil(len(data_tr) / batch_size))
 
-    for epochs in range(epochs_per_minibatch):
+    for epochs in tqdm(range(epochs_per_minibatch)):
         for i, data in enumerate(loader_tr, 0):
             inputs, labels = data[0].to(device), data[1].to(device)
 
