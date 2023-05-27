@@ -40,10 +40,10 @@ def free_adv_train(model, data_tr, criterion, optimizer, lr_scheduler,
                            num_workers=dl_nw)
 
     # init delta (adv. perturbation) - FILL ME
-    # delta = torch.zeros((batch_size, 3, 32, 32), requires_grad=True, device=device)
+    delta = torch.zeros((batch_size, data_tr[0][0].size(0), data_tr[0][0].size(1), data_tr[0][0].size(2)), requires_grad=True, device=device)
     # delta = torch.zeros(batch_size, data_tr[0][0].size(1),
     #                     data_tr[0][0].size(2), data_tr[0][0].size(3)).to(device)
-    delta = torch.zeros_like(data_tr, requires_grad=True, device=device)
+    # delta = torch.zeros_like(data_tr, requires_grad=True, device=device)
 
     # total number of updates - FILL ME
     epochs_per_minibatch = int(epochs / m)
@@ -56,10 +56,7 @@ def free_adv_train(model, data_tr, criterion, optimizer, lr_scheduler,
             inputs, labels = data[0].to(device), data[1].to(device)
 
             for _ in range(m):
-                optimizer.zero_grad()
-                delta.grad.zero_()
-
-                perturbed_image = inputs + delta
+                perturbed_image = inputs + delta[:len(inputs)]
                 out = model(perturbed_image)
                 loss = criterion(out, labels)
                 loss.backward(retain_graph=True)
@@ -68,6 +65,9 @@ def free_adv_train(model, data_tr, criterion, optimizer, lr_scheduler,
                 delta.data = torch.clamp(delta + eps * delta_grad, min=-eps, max=eps)
 
                 optimizer.step()
+
+                optimizer.zero_grad()
+                delta.grad.zero_()
 
             if i * m % scheduler_step_iters == 0:
                 lr_scheduler.step()
