@@ -1,4 +1,6 @@
 import numpy as np
+import scipy.stats
+import statsmodels.stats.proportion
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
@@ -7,6 +9,8 @@ from scipy.stats import norm
 from statsmodels.stats.proportion import proportion_confint
 
 from tqdm import tqdm
+from collections import Counter
+
 
 def free_adv_train(model, data_tr, criterion, optimizer, lr_scheduler,
                    eps, device, m=4, epochs=100, batch_size=128, dl_nw=10):
@@ -91,8 +95,17 @@ class SmoothedModel():
         array counting how many times each class was assigned the
         max confidence).
         """
-        # FILL ME
-        pass
+        batch_x = x.unsqueeze(0).expand(batch_size, -1, -1, -1)
+        delta = torch.randn(n, *x.shape) * self.sigma
+
+        predictions = []
+
+        for i in range(0, n, batch_size):
+            batch_delta = delta[i: i + batch_size]
+            probabilities = self.model(batch_x[:len(batch_delta)] + batch_delta)
+            predictions += torch.max(probabilities, 1)
+
+        return dict(Counter(predictions))
 
     def certify(self, x, n0, n, alpha, batch_size):
         """
@@ -111,11 +124,37 @@ class SmoothedModel():
         """
 
         # find prediction (top class c) - FILL ME
+        counts0 = self._sample_under_noise(x, n0, batch_size)
+        c_max = max(counts0)
+        counts = self._sample_under_noise(x, n, batch_size)
 
         # compute lower bound on p_c - FILL ME
+        pa = statsmodels.stats.proportion.proportion_confint(counts[c_max], n, 1 - alpha)
 
-        # done
-        return c, radius
+        if pa > 0.5:
+            return c_max, self.sigma * norm.ppf(pa)
+
+        return self.ABSTAIN
+        #
+        # # Find prediction (top class c)
+        # logits = self.model(x)
+        # _, prediction = torch.max(logits, 1)
+        # c = prediction.item()
+        #
+        # # Compute lower bound on p_c
+        # perturbed_inputs = self._sample_under_noise(x, n0, batch_size)
+        # perturbed_logits = self.model(perturbed_inputs)
+        # perturbed_probs = torch.softmax(perturbed_logits, dim=1)
+        # lower_bound, _ = torch.kthvalue(perturbed_probs[:, c], int((1 - alpha) * n0))
+        #
+        # # Compute certified radius
+        # radius = self.sigma * torch.norm(logits[:, c] - lower_bound, p=1)
+        #
+        # # Return prediction and certified radius
+        # return c, radius.item()
+        #
+        # # done
+        # return c, radius
 
 
 class NeuralCleanse:

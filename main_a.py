@@ -125,3 +125,17 @@ if __name__ == '__main__':
         print(f'Time (in seconds) to complete free adversarial training: {t:0.4f}')
     else:
         run_evaluation()
+
+# Training standard model...
+# 100%|######################################################################################################| 100/100 [02:55<00:00,  1.75s/it]
+# Time (in seconds) to complete standard training: 175.0358
+# Adversarially training a model...
+# 100%|########################################################################################################| 25/25 [02:40<00:00,  6.40s/it]
+# Time (in seconds) to complete free adversarial training: 160.0081
+
+# Model accuracy:
+# 	- standard    : 0.9168
+# 	- adv_trained : 0.8583
+# Success rate of untargeted white-box PGD:
+# 	- standard  : 0.8935
+# 	- adv_trained: 0.3313
