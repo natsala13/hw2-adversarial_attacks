@@ -51,7 +51,7 @@ def run_any_training(training_method: callable, model_path: str, *args, **kwargs
 
     # execute training
     t0 = time.time()
-    model = training_method(model, data_tr, criterion, optimizer, scheduler, device, *args, **kwargs)
+    model = training_method(model, data_tr, criterion, optimizer, scheduler, device=device, *args, **kwargs)
     train_time = time.time() - t0
 
     # move model to cpu and store it
