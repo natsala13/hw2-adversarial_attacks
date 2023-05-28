@@ -20,8 +20,8 @@ np.random.seed(consts.SEED)
 
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
-def run_evaluation(sigma):
 
+def run_evaluation(sigma):
     # load model
     trained_models = {}
     mpath = f'trained-models/simple-cnn-sigma-{sigma:0.4f}'
@@ -42,26 +42,28 @@ def run_evaluation(sigma):
 
     # find certified radius per sample
     cert_radii = []
-    for (x,y) in loader_test:
+    for (x, y) in loader_test:
         x, y = x.to(device), y.to(device)
         pred, radius = smoothed_model.certify(x,
                                               consts.RS_N0,
                                               consts.RS_N,
                                               consts.RS_ALPHA,
                                               consts.BATCH_SIZE)
-        cert_radii.append(radius if pred==y else 0.)
+        cert_radii.append(radius if pred == y else 0.)
     
     # done
     return cert_radii
         
 
 def plot_radii(radii):
-    x = [] # radius
-    y = [] # accuracy
+    x = []  # radius
+    y = []  # accuracy
     # derive x and y from the certified radii - FILL ME
     
     # plot
-    plt.plot(x,y)
+    # plt.plot(x, y)
+    print(radii)
+
 
 if __name__=='__main__':
     sigmas = [0.05, 0.20]
@@ -70,11 +72,13 @@ if __name__=='__main__':
         print(f'Certifying L2 radii with sigma={sigma:0.4f}')
         radii[sigma] = run_evaluation(sigma)
 
-    # plot
-    plt.figure()
-    for sigma in sigmas:
-        plot_radii(radii[sigma])
-    plt.xlabel('certified L2 radius')
-    plt.ylabel('accuracy')
-    plt.legend(sigmas, title='sigma')
-    plt.savefig('randomized-smoothing-acc-vs-radius.pdf')
+    print(radii)
+
+    # # plot
+    # plt.figure()
+    # for sigma in sigmas:
+    #     plot_radii(radii[sigma])
+    # plt.xlabel('certified L2 radius')
+    # plt.ylabel('accuracy')
+    # plt.legend(sigmas, title='sigma')
+    # plt.savefig('randomized-smoothing-acc-vs-radius.pdf')

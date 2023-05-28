@@ -103,7 +103,7 @@ class SmoothedModel():
         for i in range(0, n, batch_size):
             batch_delta = delta[i: i + batch_size]
             probabilities = self.model(batch_x[:len(batch_delta)] + batch_delta)
-            predictions += torch.max(probabilities, 1)
+            predictions += torch.argmax(probabilities, 1).detach().cpu().tolist()
 
         return dict(Counter(predictions))
 
@@ -125,36 +125,16 @@ class SmoothedModel():
 
         # find prediction (top class c) - FILL ME
         counts0 = self._sample_under_noise(x, n0, batch_size)
-        c_max = max(counts0)
+        c_max = max(counts0, key=counts0.get)
         counts = self._sample_under_noise(x, n, batch_size)
 
         # compute lower bound on p_c - FILL ME
-        pa = statsmodels.stats.proportion.proportion_confint(counts[c_max], n, 1 - alpha)
+        pa, _ = statsmodels.stats.proportion.proportion_confint(counts.get(c_max, 0), n, 1 - alpha)
 
         if pa > 0.5:
             return c_max, self.sigma * norm.ppf(pa)
 
-        return self.ABSTAIN
-        #
-        # # Find prediction (top class c)
-        # logits = self.model(x)
-        # _, prediction = torch.max(logits, 1)
-        # c = prediction.item()
-        #
-        # # Compute lower bound on p_c
-        # perturbed_inputs = self._sample_under_noise(x, n0, batch_size)
-        # perturbed_logits = self.model(perturbed_inputs)
-        # perturbed_probs = torch.softmax(perturbed_logits, dim=1)
-        # lower_bound, _ = torch.kthvalue(perturbed_probs[:, c], int((1 - alpha) * n0))
-        #
-        # # Compute certified radius
-        # radius = self.sigma * torch.norm(logits[:, c] - lower_bound, p=1)
-        #
-        # # Return prediction and certified radius
-        # return c, radius.item()
-        #
-        # # done
-        # return c, radius
+        return -1, self.ABSTAIN
 
 
 class NeuralCleanse:
