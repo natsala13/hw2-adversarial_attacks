@@ -81,8 +81,7 @@ def run_evaluation():
     # load standard and adversarially trained models
     trained_models = {}
     mpaths = {'standard': 'trained-models/simple-cnn',
-              'adv_trained': 'trained-models/simple-cnn-free-adv-trained',
-              'adv_trained_m7': 'trained-models/simple-cnn-free-adv-trained_m7'}
+              'adv_trained': 'trained-models/simple-cnn-free-adv-trained'}
 
     for mtype in mpaths:
         model = models.SimpleCNN()
