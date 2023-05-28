@@ -56,7 +56,7 @@ def run_evaluation(sigma):
         
 
 def plot_radii(radii):
-    x = np.linspace(0, max(radii) * 1.2)  # radius
+    x = np.linspace(0, max([val for val in radii if val < 100]) * 1.2)  # radius
     y = []  # accuracy
     # derive x and y from the certified radii - FILL ME
     y = [sum(radii > val) / len(radii) for val in x]
