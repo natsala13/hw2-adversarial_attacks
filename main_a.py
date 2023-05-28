@@ -69,19 +69,21 @@ def run_standard_training():
     return run_any_training(utils.standard_train, 'trained-models/simple-cnn')
 
 
-def run_free_adv_training():
+def run_free_adv_training(**kwargs):
     """
     Run free adversarial training
     """
     return run_any_training(defenses.free_adv_train,
-                            'trained-models/simple-cnn-free-adv-trained', eps=consts.PGD_Linf_EPS)
+                            'trained-models/simple-cnn-free-adv-trained_m7', eps=consts.PGD_Linf_EPS, **kwargs)
 
 
 def run_evaluation():
     # load standard and adversarially trained models
     trained_models = {}
     mpaths = {'standard': 'trained-models/simple-cnn',
-              'adv_trained': 'trained-models/simple-cnn-free-adv-trained'}
+              'adv_trained': 'trained-models/simple-cnn-free-adv-trained',
+              'adv_trained_m7': 'trained-models/simple-cnn-free-adv-trained_m7'}
+
     for mtype in mpaths:
         model = models.SimpleCNN()
         model.load_state_dict(torch.load(mpaths[mtype]))
@@ -117,11 +119,13 @@ def run_evaluation():
 if __name__ == '__main__':
     args = parse_arguments()
     if args.train:
-        print('Training standard model...')
-        t = run_standard_training()
-        print(f'Time (in seconds) to complete standard training: {t:0.4f}')
-        print('Adversarially training a model...')
-        t = run_free_adv_training()
+        # print('Training standard model...')
+        # t = run_standard_training()
+        # print(f'Time (in seconds) to complete standard training: {t:0.4f}')
+        # print('Adversarially training a model...')
+        # t = run_free_adv_training()
+        # print(f'Time (in seconds) to complete free adversarial training: {t:0.4f}')
+        t = run_free_adv_training(m=7)
         print(f'Time (in seconds) to complete free adversarial training: {t:0.4f}')
     else:
         run_evaluation()
