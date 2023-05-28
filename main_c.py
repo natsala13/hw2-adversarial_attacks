@@ -58,7 +58,7 @@ def run_neural_cleanse():
         model.to(device)
 
         # init NeuralCleanse
-        nc = defenses.NeuralCleanse(model, lambda_c=0.1, step_size=0.5)
+        nc = defenses.NeuralCleanse(model, lambda_c=0.01, step_size=0.5)
 
         # find mask + trigger targeting each potential class
         for c_t in range(4):
@@ -73,7 +73,7 @@ def run_neural_cleanse():
     selected_c_t = int(input('Which class is the backdoor targeting (0/1/2/3)? '))
 
     for model in [0, 1]:
-        for target in [0, 1, 2, 4]:
+        for target in [0, 1, 2, 3]:
             tmp_mask = masks[model][target].detach().numpy().squeeze().transpose((1, 2, 0))
             utils.save_as_im(tmp_mask, f'debug/backdoor-mask_m{model}_t{target}.jpg')
             tmp_trig = (masks[model][target] * triggers[model][target]).detach().numpy().squeeze().transpose((1, 2, 0))
@@ -131,15 +131,17 @@ if __name__=='__main__':
 # Accuracy of model 0: 0.9168
 # Accuracy of model 1: 0.9107
 
-# Norm of trigger targeting class 0 in model 0: 1.1322
-# Norm of trigger targeting class 1 in model 0: 1.2105
-# Norm of trigger targeting class 2 in model 0: 1.3507
-# Norm of trigger targeting class 3 in model 0: 1.3775
-# Norm of trigger targeting class 0 in model 1: 0.9854
-# Norm of trigger targeting class 1 in model 1: 1.1558
-# Norm of trigger targeting class 2 in model 1: 1.1610
-# Norm of trigger targeting class 3 in model 1: 1.1078
+# Norm of trigger targeting class 0 in model 0: 147.7350
+# Norm of trigger targeting class 1 in model 0: 176.3994
+# Norm of trigger targeting class 2 in model 0: 181.2696
+# Norm of trigger targeting class 3 in model 0: 174.2461
+# Norm of trigger targeting class 0 in model 1: 52.1373
+# Norm of trigger targeting class 1 in model 1: 168.0632
+# Norm of trigger targeting class 2 in model 1: 219.2246
+# Norm of trigger targeting class 3 in model 1: 170.1402
 #
 # Which model is backdoored (0/1)? 1
 # Which class is the backdoor targeting (0/1/2/3)? 0
 # Backdoor success rate: 0.2665
+# lambda = 0.01
+# lr = 0.5

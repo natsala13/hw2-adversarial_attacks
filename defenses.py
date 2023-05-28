@@ -96,7 +96,8 @@ class SmoothedModel():
         array counting how many times each class was assigned the
         max confidence).
         """
-        batch_x = x.expand(batch_size, -1, -1, -1)
+        # batch_x = x.expand(batch_size, -1, -1, -1)
+        batch_x = x.repeat([batch_size, 1, 1, 1])
         delta = torch.randn(n, *x.shape[1:], device=x.device) * self.sigma
 
         predictions = []
@@ -129,13 +130,18 @@ class SmoothedModel():
         c_max = max(counts0, key=counts0.get)
         counts = self._sample_under_noise(x, n, batch_size)
 
+        # import ipdb;ipdb.set_trace()
+
         # compute lower bound on p_c - FILL ME
-        pa, _ = statsmodels.stats.proportion.proportion_confint(counts.get(c_max, 0), n, 1 - alpha)
+        pb, pa = statsmodels.stats.proportion.proportion_confint(counts.get(c_max, 0), n, 1 - alpha)
+        pa_2, pb_2 = statsmodels.stats.proportion.proportion_confint(counts.get(c_max, 0), n, alpha, 'binom_test')
+        if pa != pa_2:
+            import ipdb;ipdb.set_trace()
 
         if pa > 0.5:
             return c_max, self.sigma * norm.ppf(pa)
 
-        return -1, self.ABSTAIN
+        return self.ABSTAIN, 0.0
 
 
 class NeuralCleanse:
@@ -203,8 +209,11 @@ class NeuralCleanse:
                 loss.backward()
                 optimizer.step()
 
-                mask = torch.clamp(mask, 0, 1).detach().requires_grad_(True)
-                trigger = torch.clamp(trigger, 0, 1).detach().requires_grad_(True)
+                # mask = torch.clamp(mask, 0, 1).detach().requires_grad_(True)
+                # trigger = torch.clamp(trigger, 0, 1).detach().requires_grad_(True)
+
+                mask.data = mask.data.clamp(0.0, 1.0)  # .detach().requires_grad_(True)
+                trigger.data = trigger.data.clamp(0.0, 1.0)  # .detach().requires_grad_(True)
 
         # done
         return mask.repeat([1, 3, 1, 1]), trigger
