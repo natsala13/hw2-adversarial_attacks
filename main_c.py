@@ -58,7 +58,7 @@ def run_neural_cleanse():
         model.to(device)
 
         # init NeuralCleanse
-        nc = defenses.NeuralCleanse(model)
+        nc = defenses.NeuralCleanse(model, lambda_c=0.1, step_size=0.5)
 
         # find mask + trigger targeting each potential class
         for c_t in range(4):
@@ -71,6 +71,13 @@ def run_neural_cleanse():
     # ask for user input
     selected_mid = int(input('Which model is backdoored (0/1)? '))
     selected_c_t = int(input('Which class is the backdoor targeting (0/1/2/3)? '))
+
+    for model in [0, 1]:
+        for target in [0, 1, 2, 4]:
+            tmp_mask = masks[model][target].detach().numpy().squeeze().transpose((1, 2, 0))
+            utils.save_as_im(tmp_mask, f'debug/backdoor-mask_m{model}_t{target}.jpg')
+            tmp_trig = (masks[model][target] * triggers[model][target]).detach().numpy().squeeze().transpose((1, 2, 0))
+            utils.save_as_im(tmp_trig, f'debug/backdoor-trigger_m{model}_t{target}.jpg')
 
     return selected_mid, \
         masks[selected_mid][selected_c_t], \
@@ -101,7 +108,8 @@ def evaluate_backdoor_success(model_id, mask, trigger, c_t):
                                              trigger,
                                              c_t)
     print(f'Backdoor success rate: {sr:0.4f}')
-        
+
+
 if __name__=='__main__':
     # evaluate the accuracy of the two models
     evaluate_accuracy()
@@ -119,3 +127,19 @@ if __name__=='__main__':
     mask = mask.to(device)
     trigger = trigger.to(device)
     evaluate_backdoor_success(backdoored_model_id, mask, trigger, c_t)
+
+# Accuracy of model 0: 0.9168
+# Accuracy of model 1: 0.9107
+
+# Norm of trigger targeting class 0 in model 0: 1.1322
+# Norm of trigger targeting class 1 in model 0: 1.2105
+# Norm of trigger targeting class 2 in model 0: 1.3507
+# Norm of trigger targeting class 3 in model 0: 1.3775
+# Norm of trigger targeting class 0 in model 1: 0.9854
+# Norm of trigger targeting class 1 in model 1: 1.1558
+# Norm of trigger targeting class 2 in model 1: 1.1610
+# Norm of trigger targeting class 3 in model 1: 1.1078
+#
+# Which model is backdoored (0/1)? 1
+# Which class is the backdoor targeting (0/1/2/3)? 0
+# Backdoor success rate: 0.2665

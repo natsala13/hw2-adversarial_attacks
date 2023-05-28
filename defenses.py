@@ -10,6 +10,7 @@ from statsmodels.stats.proportion import proportion_confint
 
 from tqdm import tqdm
 from collections import Counter
+import math
 
 
 def free_adv_train(model, data_tr, criterion, optimizer, lr_scheduler,
@@ -177,41 +178,33 @@ class NeuralCleanse:
         """
         # randomly initialize mask and trigger in [0,1] - FILL ME
         batch = 128
-        _, _, height, weight = self.dim
+        _, color, height, weight = self.dim
+        mask = torch.zeros(1, 1, height, weight, device=device, requires_grad=True)
+        trigger = torch.randn(1, color, height, weight, device=device, requires_grad=True)
+        false_labels = torch.zeros(batch, device=device).long() + c_t
 
-        all_masks, all_triggers = [], []
+        optimizer = torch.optim.SGD([mask, trigger], lr=self.step_size)  # TODO: Add 0.5 to step size
+        self.model.eval()
+        self.model.requires_grad_(False)
 
         # run self.niters of SGD to find (potential) trigger and mask - FILL ME
-        for inputs, labels in tqdm(data_loader):
-            mask = torch.randn(batch, height, weight, device=device, requires_grad=True)
-            trigger = torch.randn(*self.dim, device=device, requires_grad=True)
-            false_labels = torch.zeros(len(labels), device=device).long() + c_t
-
-            for i in range(self.niters):
+        for i in tqdm(range(math.ceil(self.niters/len(data_loader)))):
+            for inputs, labels in data_loader:
                 inputs, labels = inputs.to(device), labels.to(device)
 
-                predictions = self.model(self.apply_trigger(inputs, mask.unsqueeze(1), trigger))
+                triggered_image = self.apply_trigger(inputs, mask, trigger)
 
-                # if self.early_stop and classified_correctly(prediction, y, targeted):
-                #     break
-                loss = -self.loss_func(predictions, false_labels[:len(labels)]) + self.lambda_c * torch.norm(mask, p=1)
-                # TODO: Make sure we need a minus
-                # loss = -1 * loss if targeted else loss
+                optimizer.zero_grad()
 
-                loss.backward(retain_graph=True)
-                # grad = torch.autograd.grad(loss, delta)[0]
+                predictions = self.model(triggered_image)
 
-                mask_grad = mask.grad.sign_()
-                trigger_grad = trigger.grad.sign_()
+                loss = self.loss_func(predictions, false_labels[:len(labels)]) + self.lambda_c * torch.sum(mask)
 
-                # import ipdb;ipdb.set_trace()
+                loss.backward()
+                optimizer.step()
 
-                # += doesnt work here for the reason of changing inplace a derivable variable
-                mask = (mask.detach() + self.step_size * mask_grad).requires_grad_()
-                trigger = (trigger.detach() + self.step_size * trigger_grad).requires_grad_()
-
-            all_masks += mask
-            all_triggers += trigger
+                mask = torch.clamp(mask, 0, 1).detach().requires_grad_(True)
+                trigger = torch.clamp(trigger, 0, 1).detach().requires_grad_(True)
 
         # done
-        return mask, trigger
+        return mask.repeat([1, 3, 1, 1]), trigger
