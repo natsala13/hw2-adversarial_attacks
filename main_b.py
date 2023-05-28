@@ -57,27 +57,25 @@ def run_evaluation(sigma):
 
 def plot_radii(radii):
     x = np.linspace(0, max([val for val in radii if val < 100]) * 1.2)  # radius
-    y = []  # accuracy
+
     # derive x and y from the certified radii - FILL ME
     y = [sum(radii > val) / len(radii) for val in x]
 
     plt.plot(x, y)
-    # print(radii)
 
 
 if __name__=='__main__':
     sigmas = [0.05, 0.20]
-    # radii = {}
-    # for sigma in sigmas:
-    #     print(f'Certifying L2 radii with sigma={sigma:0.4f}')
-    #     radii[sigma] = run_evaluation(sigma)
+    radii = {}
+    for sigma in sigmas:
+        print(f'Certifying L2 radii with sigma={sigma:0.4f}')
+        radii[sigma] = run_evaluation(sigma)
 
-    # np.save('radi_result.npy', radii)
-    radii = np.load('radi_result.npy', allow_pickle=True).item()
+    # np.save('radii_result.npy', radii)
+    # radii = np.load('radii_result.npy', allow_pickle=True).item()
 
-    # import ipdb;ipdb.set_trace()
     # plot
-    # plt.figure()
+    plt.figure()
     for sigma in sigmas:
         plot_radii(radii[sigma])
     plt.xlabel('certified L2 radius')

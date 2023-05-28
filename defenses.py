@@ -8,7 +8,6 @@ from torch.utils.data import DataLoader
 from scipy.stats import norm
 from statsmodels.stats.proportion import proportion_confint
 
-from tqdm import tqdm
 from collections import Counter
 import math
 
@@ -42,9 +41,6 @@ def free_adv_train(model, data_tr, criterion, optimizer, lr_scheduler,
 
     # init delta (adv. perturbation) - FILL ME
     delta = torch.zeros((batch_size, data_tr[0][0].size(0), data_tr[0][0].size(1), data_tr[0][0].size(2)), requires_grad=True, device=device)
-    # delta = torch.zeros(batch_size, data_tr[0][0].size(1),
-    #                     data_tr[0][0].size(2), data_tr[0][0].size(3)).to(device)
-    # delta = torch.zeros_like(data_tr, requires_grad=True, device=device)
 
     # total number of updates - FILL ME
     epochs_per_minibatch = int(epochs / m)
@@ -52,7 +48,7 @@ def free_adv_train(model, data_tr, criterion, optimizer, lr_scheduler,
     # when to update lr
     scheduler_step_iters = int(np.ceil(len(data_tr) / batch_size))
 
-    for epochs in tqdm(range(epochs_per_minibatch)):
+    for epochs in range(epochs_per_minibatch):
         for i, data in enumerate(loader_tr, 0):
             inputs, labels = data[0].to(device), data[1].to(device)
 
@@ -76,7 +72,7 @@ def free_adv_train(model, data_tr, criterion, optimizer, lr_scheduler,
     return model
 
 
-class SmoothedModel():
+class SmoothedModel:
     """
     Use randomized smoothing to find L2 radius around sample x,
     s.t. the classification of x doesn't change within the L2 ball
@@ -130,13 +126,8 @@ class SmoothedModel():
         c_max = max(counts0, key=counts0.get)
         counts = self._sample_under_noise(x, n, batch_size)
 
-        # import ipdb;ipdb.set_trace()
-
         # compute lower bound on p_c - FILL ME
-        pb, pa = statsmodels.stats.proportion.proportion_confint(counts.get(c_max, 0), n, 1 - alpha)
-        pa_2, pb_2 = statsmodels.stats.proportion.proportion_confint(counts.get(c_max, 0), n, alpha, 'binom_test')
-        if pa != pa_2:
-            import ipdb;ipdb.set_trace()
+        pb, pa = proportion_confint(counts.get(c_max, 0), n, 1 - alpha)
 
         if pa > 0.5:
             return c_max, self.sigma * norm.ppf(pa)
@@ -189,12 +180,12 @@ class NeuralCleanse:
         trigger = torch.randn(1, color, height, weight, device=device, requires_grad=True)
         false_labels = torch.zeros(batch, device=device).long() + c_t
 
-        optimizer = torch.optim.SGD([mask, trigger], lr=self.step_size)  # TODO: Add 0.5 to step size
+        optimizer = torch.optim.SGD([mask, trigger], lr=self.step_size)
         self.model.eval()
         self.model.requires_grad_(False)
 
         # run self.niters of SGD to find (potential) trigger and mask - FILL ME
-        for i in tqdm(range(math.ceil(self.niters/len(data_loader)))):
+        for i in range(math.ceil(self.niters/len(data_loader))):
             for inputs, labels in data_loader:
                 inputs, labels = inputs.to(device), labels.to(device)
 
@@ -209,11 +200,8 @@ class NeuralCleanse:
                 loss.backward()
                 optimizer.step()
 
-                # mask = torch.clamp(mask, 0, 1).detach().requires_grad_(True)
-                # trigger = torch.clamp(trigger, 0, 1).detach().requires_grad_(True)
-
-                mask.data = mask.data.clamp(0.0, 1.0)  # .detach().requires_grad_(True)
-                trigger.data = trigger.data.clamp(0.0, 1.0)  # .detach().requires_grad_(True)
+                mask.data = mask.data.clamp(0.0, 1.0)
+                trigger.data = trigger.data.clamp(0.0, 1.0)
 
         # done
         return mask.repeat([1, 3, 1, 1]), trigger

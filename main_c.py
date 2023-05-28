@@ -110,7 +110,7 @@ def evaluate_backdoor_success(model_id, mask, trigger, c_t):
     print(f'Backdoor success rate: {sr:0.4f}')
 
 
-if __name__=='__main__':
+if __name__ == '__main__':
     # evaluate the accuracy of the two models
     evaluate_accuracy()
 
