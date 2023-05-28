@@ -160,6 +160,10 @@ class NeuralCleanse:
         self.step_size = step_size
         self.loss_func = nn.CrossEntropyLoss()
 
+    @staticmethod
+    def apply_trigger(x: torch.tensor, mask: torch.tensor, trigger: torch.tensor):
+        return (1 - mask) * x + mask * trigger
+
     def find_candidate_backdoor(self, c_t, data_loader, device):
         """
         A method for finding a (potential) backdoor targeting class c_t.
@@ -172,8 +176,42 @@ class NeuralCleanse:
         - trigger: 
         """
         # randomly initialize mask and trigger in [0,1] - FILL ME
+        batch = 128
+        _, _, height, weight = self.dim
+
+        all_masks, all_triggers = [], []
 
         # run self.niters of SGD to find (potential) trigger and mask - FILL ME
+        for inputs, labels in tqdm(data_loader):
+            mask = torch.randn(batch, height, weight, device=device, requires_grad=True)
+            trigger = torch.randn(*self.dim, device=device, requires_grad=True)
+            false_labels = torch.zeros(len(labels), device=device).long() + c_t
+
+            for i in range(self.niters):
+                inputs, labels = inputs.to(device), labels.to(device)
+
+                predictions = self.model(self.apply_trigger(inputs, mask.unsqueeze(1), trigger))
+
+                # if self.early_stop and classified_correctly(prediction, y, targeted):
+                #     break
+                loss = -self.loss_func(predictions, false_labels[:len(labels)]) + self.lambda_c * torch.norm(mask, p=1)
+                # TODO: Make sure we need a minus
+                # loss = -1 * loss if targeted else loss
+
+                loss.backward(retain_graph=True)
+                # grad = torch.autograd.grad(loss, delta)[0]
+
+                mask_grad = mask.grad.sign_()
+                trigger_grad = trigger.grad.sign_()
+
+                # import ipdb;ipdb.set_trace()
+
+                # += doesnt work here for the reason of changing inplace a derivable variable
+                mask = (mask.detach() + self.step_size * mask_grad).requires_grad_()
+                trigger = (trigger.detach() + self.step_size * trigger_grad).requires_grad_()
+
+            all_masks += mask
+            all_triggers += trigger
 
         # done
         return mask, trigger
