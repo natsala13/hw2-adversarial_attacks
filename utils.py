@@ -57,7 +57,7 @@ def standard_train(model, data_tr, criterion, optimizer, lr_scheduler, device,
                            num_workers=dl_nw)
 
     # train
-    for epoch in tqdm(range(epochs)):  # loop over the dataset multiple times
+    for epoch in range(epochs):  # loop over the dataset multiple times
 
         for i, data in enumerate(loader_tr, 0):
             # get inputs and labels
