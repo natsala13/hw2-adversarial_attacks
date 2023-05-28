@@ -95,8 +95,8 @@ class SmoothedModel():
         array counting how many times each class was assigned the
         max confidence).
         """
-        batch_x = x.unsqueeze(0).expand(batch_size, -1, -1, -1)
-        delta = torch.randn(n, *x.shape) * self.sigma
+        batch_x = x.expand(batch_size, -1, -1, -1)
+        delta = torch.randn(n, *x.shape[1:], device=x.device) * self.sigma
 
         predictions = []
 
